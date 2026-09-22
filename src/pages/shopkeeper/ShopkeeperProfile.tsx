@@ -7,6 +7,7 @@ import api, { uploadImage } from "../../lib/api";
 import { Shop, PricingPlan, Subscription } from "../../types";
 import LocationPicker from "../../components/registration/LocationPicker";
 import ConfirmActionDialog from "../../components/ui/ConfirmActionDialog";
+import { DashboardProfileSkeleton } from "../../components/ui/LoadingSkeleton";
 import { useToast } from "../../context/ToastContext";
 
 const weekDays = [
@@ -51,6 +52,7 @@ export default function ShopkeeperProfile() {
   const [newPayment, setNewPayment] = useState({ name: "", phone: "" });
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [confirmUpdate, setConfirmUpdate] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
   const { showToast } = useToast();
   const normalizePaymentMethods = (value: unknown): Array<{ name: string; phone: string }> => {
     const normalizeName = (name: string) => {
@@ -72,20 +74,23 @@ export default function ShopkeeperProfile() {
   };
 
   useEffect(() => {
-    api.get("/shops/my").then((r) => {
+    const shopRequest = api.get("/shops/my").then((r) => {
       setShop(r.data);
       setScheduleEnabled(Boolean(r.data.scheduleEnabled));
       setOpeningHours({ ...defaultHours, ...(r.data.openingHours || {}) });
       setPaymentAccounts(normalizePaymentMethods(r.data.paymentMethods));
     }).catch(() => {});
-    api.get("/subscriptions/pricing").then((r) => setPlans(r.data));
+    const plansRequest = api.get("/subscriptions/pricing").then((r) => setPlans(r.data));
     const sessionId = searchParams.get("session_id");
     const confirm = sessionId
       ? api.get(`/subscriptions/stripe/confirm?session_id=${encodeURIComponent(sessionId)}`)
       : Promise.resolve();
-    confirm.finally(() => {
-      api.get("/subscriptions/me").then((r) => setSubscription(r.data)).catch(() => {});
-    });
+    const subscriptionRequest = confirm
+      .then(() => api.get("/subscriptions/me"))
+      .then((r) => setSubscription(r.data))
+      .catch(() => {});
+    Promise.all([shopRequest, plansRequest, subscriptionRequest])
+      .finally(() => setProfileLoading(false));
   }, [searchParams]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,6 +129,8 @@ export default function ShopkeeperProfile() {
       setSaving(false);
     }
   };
+
+  if (!profile || profileLoading) return <DashboardProfileSkeleton />;
 
   const toggleShop = async () => {
     if (!shop) return;
@@ -201,7 +208,7 @@ export default function ShopkeeperProfile() {
   };
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="profile-page space-y-6 max-w-5xl">
       <ConfirmActionDialog open={confirmUpdate} title={t("label.confirm_update")} description={t("label.confirm_update_description")} confirmLabel={t("label.update")} busy={saving} onConfirm={saveProfile} onCancel={() => setConfirmUpdate(false)} />
       <div>
         <h1 className="font-display text-2xl font-bold">{t("label.shop_profile")}</h1>
@@ -210,7 +217,7 @@ export default function ShopkeeperProfile() {
 
       {/* Shop status card */}
       {shop && (
-        <div className="bg-base-100 border border-base-300 rounded-2xl p-6 flex items-center justify-between gap-4">
+        <div className="profile-section bg-base-100 border border-base-300 rounded-2xl p-5 sm:p-6 flex items-center justify-between gap-4">
           <div>
             <h2 className="font-semibold text-lg">{shop.name}</h2>
             <p className="text-sm text-base-content/50">{shop.address}</p>
@@ -232,7 +239,7 @@ export default function ShopkeeperProfile() {
         </div>
       )}
 
-      <div className="bg-base-100 border border-base-300 rounded-2xl p-6">
+      <div className="profile-section bg-base-100 border border-base-300 rounded-2xl p-5 sm:p-6">
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
             <h2 className="font-semibold text-lg">{t("label.opening_hours")}</h2>
@@ -297,10 +304,10 @@ export default function ShopkeeperProfile() {
       </div>
 
       {/* Profile form */}
-      <div className="bg-base-100 border border-base-300 rounded-2xl p-8">
+      <div className="profile-section profile-card bg-base-100 border border-base-300 rounded-2xl p-5 sm:p-8">
         <h2 className="font-semibold mb-6">{t("label.personal_information")}</h2>
 
-        <div className="flex items-center gap-5 mb-6">
+        <div className="profile-card-header flex items-center gap-5 mb-7">
           <div className="relative">
             <div className="avatar">
               <div className="w-20 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100">
@@ -328,15 +335,16 @@ export default function ShopkeeperProfile() {
           </div>
         </div>
 
-        <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSave} className="profile-form space-y-5">
+          <div className="grid sm:grid-cols-2 gap-5">
             <div className="form-control">
               <label className="label"><span className="label-text">{t("label.full_name")}</span></label>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input input-bordered w-full" />
             </div>
-            <div className="form-control">
+            <div className="form-control sm:col-span-2">
               <label className="label"><span className="label-text">{t("label.shop_location")}</span></label>
               <LocationPicker
+                address={form.address}
                 latitude={latitude}
                 longitude={longitude}
                 onChange={(lat, lng) => { setLatitude(lat); setLongitude(lng); }}
@@ -367,7 +375,7 @@ export default function ShopkeeperProfile() {
       </div>
 
       {/* Subscription */}
-      <div className="bg-base-100 border border-base-300 rounded-2xl p-8">
+      <div className="profile-section bg-base-100 border border-base-300 rounded-2xl p-5 sm:p-8">
         <h2 className="font-semibold text-lg">Digital payment accounts</h2>
         <p className="mt-1 text-sm text-base-content/60">Add the payment service name and account number customers should use.</p>
         <div className="mt-5 space-y-3">

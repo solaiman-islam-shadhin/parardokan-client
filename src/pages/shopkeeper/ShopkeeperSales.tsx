@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Plus, Trash2, TrendingUp } from "lucide-react";
 import api from "../../lib/api";
 import { Sale } from "../../types";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { DashboardTabSkeleton } from "../../components/ui/LoadingSkeleton";
 import { useToast } from "../../context/ToastContext";
 
 export default function ShopkeeperSales() {
@@ -62,7 +62,7 @@ export default function ShopkeeperSales() {
   const todayRevenue = todaySales.reduce((sum, s) => sum + s.price, 0);
   const totalRevenue = sales.reduce((sum, s) => sum + s.price, 0);
 
-  if (loading) return <LoadingSpinner fullScreen />;
+  if (loading) return <DashboardTabSkeleton variant="table" />;
 
   return (
     <div className="space-y-6">

@@ -1,5 +1,6 @@
 import { useTheme } from "../../context/ThemeContext";
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { Store, Mail, Phone, Chrome, Camera, ShoppingCart } from "lucide-react";
 import {
@@ -28,8 +29,12 @@ export default function AuthPage() {
   const { user, profile, refreshProfile } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [tab, setTab] = useState<Tab>("email");
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(
+    searchParams.get("mode") === "register" ? "register" : "login"
+  );
+  const [registerStep, setRegisterStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -51,6 +56,17 @@ export default function AuthPage() {
 
   const confirmationRef = useRef<any>(null);
   const recaptchaRef = useRef<any>(null);
+
+  const goToRegisterStep = (nextStep: 1 | 2 | 3) => {
+    setError("");
+    setRegisterStep(nextStep);
+  };
+
+  const handleModeChange = (nextMode: Mode) => {
+    setMode(nextMode);
+    setError("");
+    setRegisterStep(1);
+  };
 
   // Load pending data from local storage
   useEffect(() => {
@@ -250,363 +266,5 @@ export default function AuthPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-base-100 to-amber-100 dark:from-[#24150d] dark:via-[#171412] dark:to-[#3b2417] flex items-center justify-center p-4 pt-20">
-      <div id="recaptcha-container" />
-
-      <div className="w-full lg:w-[70%] lg:max-w-5xl bg-base-100 rounded-3xl border border-base-300/70 shadow-xl p-8 sm:p-10 lg:p-12">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Store size={22} className="text-primary-content" />
-            </div>
-          </div>
-          <h1 className="font-display text-2xl font-bold">
-            {mode === "login" ? t("label.welcome_back") : t("label.create_your_account")}
-          </h1>
-          <p className="text-base-content/50 text-sm mt-1">
-            {mode === "login"
-              ? t("label.sign_in_to_your_neighborhood")
-              : t("label.join_parar_dokan_today")}
-          </p>
-        </div>
-
-        {/* Mode toggle */}
-        <div className="tabs tabs-boxed mb-6">
-          <button
-            className={`tab tab-sm flex-1 ${mode === "login" ? "tab-active" : ""}`}
-            onClick={() => setMode("login")}
-          >
-            {t("label.sign_in")}
-          </button>
-          <button
-            className={`tab tab-sm flex-1 ${mode === "register" ? "tab-active" : ""}`}
-            onClick={() => setMode("register")}
-          >
-            {t("label.register")}
-          </button>
-        </div>
-
-        {/* Role selector for register */}
-        {mode === "register" && (
-          <div className="mb-6">
-            <label className="label">
-              <span className="label-text font-medium">{t("label.i_am_a")}</span>
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {(["customer", "shopkeeper"] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRole(r)}
-                  className={`border-2 rounded-xl p-3 text-sm font-medium capitalize transition-all ${
-                    role === r
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-base-300 hover:border-primary/50"
-                  }`}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    {r === "customer" ? <ShoppingCart size={16} /> : <Store size={16} />}
-                    {r === "customer" ? "Customer" : "Shopkeeper"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {mode === "register" && tab !== "email" && (
-          <div className="space-y-4 mb-6">
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="input input-bordered w-full"
-              placeholder="Full name"
-              required
-            />
-            <div className="flex items-center gap-3">
-              <div className="avatar"><div className="w-12 rounded-full bg-base-200">
-                <img src={avatarPreview || `https://api.dicebear.com/7.x/initials/svg?seed=${name || "User"}`} alt="Avatar preview" />
-              </div></div>
-              <label className="btn btn-outline btn-sm">
-                Choose avatar
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) { setAvatarFile(file); setAvatarPreview(URL.createObjectURL(file)); }
-                }} />
-              </label>
-            </div>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="input input-bordered w-full"
-              placeholder="Address / neighborhood"
-            />
-            <LocationPicker latitude={latitude} longitude={longitude} onChange={(lat, lng) => {
-              setLatitude(lat); setLongitude(lng);
-            }} />
-            {role === "shopkeeper" && (
-              <input
-                type="text"
-                value={shopName}
-                onChange={(e) => setShopName(e.target.value)}
-                className="input input-bordered w-full"
-                placeholder="Shop name"
-                required
-              />
-            )}
-          </div>
-        )}
-
-        {/* Auth method tabs */}
-        <div className="flex border-b border-base-300 mb-6">
-          {([
-            { id: "email" as Tab, icon: Mail, label: "Email" },
-            { id: "google" as Tab, icon: Chrome, label: "Google" },
-            { id: "phone" as Tab, icon: Phone, label: "Phone" },
-          ] as const).map(({ id, icon: Icon, label }) => (
-            <button
-              key={id}
-              onClick={() => { setTab(id); setError(""); }}
-              className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium border-b-2 transition-colors ${
-                tab === id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-base-content/50 hover:text-base-content"
-              }`}
-            >
-              <Icon size={14} />
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {error && (
-          <div className="alert alert-error mb-4 text-sm py-2">
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Google */}
-        {tab === "google" && (
-          <button
-            onClick={handleGoogle}
-            disabled={loading}
-            className="btn btn-outline w-full gap-2"
-          >
-            {loading ? (
-              <span className="loading loading-spinner loading-sm" />
-            ) : (
-              <>
-                <Chrome size={18} />
-                Continue with Google
-              </>
-            )}
-          </button>
-        )}
-
-        {/* Email */}
-        {tab === "email" && (
-          <form onSubmit={handleEmail} className="space-y-4">
-            {mode === "register" && (
-              <>
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">{t("label.full_name")}</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="input input-bordered w-full"
-                    placeholder="Your name"
-                    required
-                  />
-                </div>
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">{t("label.avatar")}</span>
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <div className="avatar">
-                      <div className="w-14 rounded-full bg-base-200">
-                        <img src={avatarPreview || `https://api.dicebear.com/7.x/initials/svg?seed=${name || "User"}`} alt="Avatar preview" />
-                      </div>
-                    </div>
-                    <label className="btn btn-outline btn-sm gap-2">
-                      <Camera size={15} /> Choose image
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setAvatarFile(file);
-                            setAvatarPreview(URL.createObjectURL(file));
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                </div>
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">{t("label.address")}</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="input input-bordered w-full"
-                    placeholder="Your neighborhood"
-                  />
-                </div>
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">{t("label.pin_your_location")}</span>
-                  </label>
-                  <LocationPicker
-                    latitude={latitude}
-                    longitude={longitude}
-                    onChange={(lat, lng) => {
-                      setLatitude(lat);
-                      setLongitude(lng);
-                    }}
-                  />
-                </div>
-                {role === "shopkeeper" && (
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text">{t("label.shop_name")}</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={shopName}
-                      onChange={(e) => setShopName(e.target.value)}
-                      className="input input-bordered w-full"
-                      placeholder="Your shop name"
-                      required
-                    />
-                  </div>
-                )}
-              </>
-            )}
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">{t("label.email")}</span>
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input input-bordered w-full"
-                placeholder="you@example.com"
-                required
-              />
-            </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">{t("label.password")}</span>
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input input-bordered w-full"
-                placeholder="Min. 6 characters"
-                minLength={6}
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary w-full"
-            >
-              {loading ? (
-                <span className="loading loading-spinner loading-sm" />
-              ) : mode === "login" ? (
-                t("label.sign_in")
-              ) : (
-                t("label.create_account")
-              )}
-            </button>
-            {mode === "login" && (
-              <button type="button" onClick={handlePasswordReset} disabled={resettingPassword} className="btn btn-ghost btn-sm w-full">
-                {resettingPassword ? <span className="loading loading-spinner loading-xs" /> : t("auth.forgot_password")}
-              </button>
-            )}
-          </form>
-        )}
-
-        {/* Phone */}
-        {tab === "phone" && (
-          <div className="space-y-4">
-            {!otpSent ? (
-              <>
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">{t("label.phone_number")}</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="input input-bordered w-full"
-                    placeholder="+8801XXXXXXXXX"
-                  />
-                </div>
-                <button
-                  onClick={handleSendOTP}
-                  disabled={loading || !phone}
-                  className="btn btn-primary w-full"
-                >
-                  {loading ? (
-                    <span className="loading loading-spinner loading-sm" />
-                  ) : (
-                    t("label.send_otp")
-                  )}
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-base-content/60">
-                  Enter the 6-digit OTP sent to {phone}
-                </p>
-                <div className="form-control">
-                  <input
-                    type="text"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    className="input input-bordered w-full text-center text-2xl tracking-widest"
-                    placeholder="000000"
-                    maxLength={6}
-                  />
-                </div>
-                <button
-                  onClick={handleVerifyOTP}
-                  disabled={loading || otp.length !== 6}
-                  className="btn btn-primary w-full"
-                >
-                  {loading ? (
-                    <span className="loading loading-spinner loading-sm" />
-                  ) : (
-                    t("label.verify_otp")
-                  )}
-                </button>
-                <button
-                  onClick={() => setOtpSent(false)}
-                  className="btn btn-ghost btn-sm w-full"
-                >
-                  Change number
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  return (<main className={"auth-page-new "+(mode==="register"?"is-register":"is-login")}><div id="recaptcha-container"/><div className="auth-layout-new"><aside className="auth-side-card"><span className="auth-side-mark"><Store size={24}/></span><span className="auth-side-kicker">PARAR DOKAN</span><h2>Your neighborhood, closer to you.</h2><p>Shop locally, connect confidently, and keep everyday purchases simple.</p><div className="auth-side-points"><span>01 <b>Trusted local shops</b></span><span>02 <b>Simple everyday orders</b></span><span>03 <b>One connected community</b></span></div></aside><section className={"auth-surface "+(mode==="register"?"is-register":"is-login")}><header className="auth-topbar"><div className="auth-brand-new"><span className="auth-brand-icon"><Store size={19}/></span><span>Parar Dokan</span></div><div className="auth-mode-switch"><button type="button" className={mode==="login"?"active":""} onClick={()=>handleModeChange("login")}>{t("label.sign_in")}</button><button type="button" className={mode==="register"?"active":""} onClick={()=>handleModeChange("register")}>{t("label.register")}</button></div></header><div className="auth-heading-new"><span className="auth-kicker">{mode==="login"?"Welcome back":"Get started"}</span><h1>{mode==="login"?t("label.welcome_back"):t("label.create_your_account")}</h1><p>{mode==="login"?t("label.sign_in_to_your_neighborhood"):t("label.join_parar_dokan_today")}</p></div>{mode==="register"&&<div className="auth-registration-layout"><nav className="auth-rail">{(["Account","Location","Verify"] as const).map((label,index)=>{const step=(index+1) as 1|2|3,complete=registerStep>step;return <button key={label} type="button" className={"auth-rail-step "+(registerStep===step?"active ":"")+(complete?"complete":"")} onClick={()=>complete&&goToRegisterStep(step)} disabled={!complete&&registerStep!==step}><span>{complete?"✓":step}</span><small>{label}</small></button>})}</nav><div className="auth-registration-body">{registerStep===1&&<div className="auth-step-content"><div className="auth-section-intro"><span>01</span><div><h2>Tell us about you</h2><p>Choose your account type and add a profile photo.</p></div></div><label className="auth-label">{t("label.i_am_a")}</label><div className="auth-role-grid">{(["customer","shopkeeper"] as const).map(r=><button key={r} type="button" onClick={()=>setRole(r)} className={role===r?"selected":""}>{r==="customer"?<ShoppingCart size={17}/>:<Store size={17}/>}<span>{r==="customer"?"Customer":"Shopkeeper"}</span></button>)}</div><label className="auth-label">{t("label.full_name")}</label><input value={name} onChange={e=>setName(e.target.value)} className="input input-bordered auth-input" placeholder="Your name"/><div className="auth-avatar-row"><div className="auth-avatar"><img src={avatarPreview||"https://api.dicebear.com/7.x/initials/svg?seed="+(name||"User")} alt="Avatar preview"/></div><label className="auth-upload"><Camera size={15}/> Upload profile photo<input type="file" accept="image/*" onChange={e=>{const file=e.target.files?.[0];if(file){setAvatarFile(file);setAvatarPreview(URL.createObjectURL(file))}}}/></label></div><button type="button" className="btn btn-primary auth-main-button" onClick={()=>{if(!name.trim()){setError("Please enter your name before continuing");return}goToRegisterStep(2)}}>Continue to location</button></div>}{registerStep===2&&<div className="auth-step-content"><div className="auth-section-intro"><span>02</span><div><h2>Set your location</h2><p>Help us connect you with nearby shops and customers.</p></div></div><label className="auth-label">{t("label.address")}</label><input value={address} onChange={e=>setAddress(e.target.value)} className="input input-bordered auth-input" placeholder="Your neighborhood"/><label className="auth-label">{t("label.pin_your_location")}</label><LocationPicker address={address} latitude={latitude} longitude={longitude} autoDetectOnMount={!localStorage.getItem("pending_registration")&&latitude===undefined&&longitude===undefined} onChange={(lat,lng)=>{setLatitude(lat);setLongitude(lng)}}/>{role==="shopkeeper"&&<><label className="auth-label">{t("label.shop_name")}</label><input value={shopName} onChange={e=>setShopName(e.target.value)} className="input input-bordered auth-input" placeholder="Your shop name"/></>}<div className="auth-actions"><button type="button" className="btn btn-ghost" onClick={()=>goToRegisterStep(1)}>Back</button><button type="button" className="btn btn-primary" onClick={()=>{if(latitude===undefined||longitude===undefined){setError("Please pin your location before continuing");return}if(role==="shopkeeper"&&!shopName.trim()){setError("Please enter your shop name before continuing");return}goToRegisterStep(3)}}>Continue to verification</button></div></div>}</div></div>}{(mode==="login"||registerStep===3)&&<div className="auth-method-area">{mode==="register"&&<div className="auth-verify-heading"><div><span className="auth-kicker">03 / VERIFY</span><p>Choose how you want to create your account.</p></div><button type="button" className="btn btn-ghost btn-sm" onClick={()=>goToRegisterStep(2)}>Back</button></div>}<div className="auth-provider-tabs">{([{id:"email" as Tab,icon:Mail,label:"Email"},{id:"google" as Tab,icon:Chrome,label:"Google"},{id:"phone" as Tab,icon:Phone,label:"Phone"}]).map(({id,icon:Icon,label})=><button key={id} type="button" className={tab===id?"active":""} onClick={()=>{setTab(id);setError("")}}><Icon size={15}/>{label}</button>)}</div>{error&&<div className="auth-error-new">{error}</div>}{tab==="google"&&<button onClick={handleGoogle} disabled={loading} className="btn btn-outline auth-main-button">{loading?<span className="loading loading-spinner loading-sm"/>:<><Chrome size={18}/> Continue with Google</>}</button>}{tab==="email"&&<form onSubmit={handleEmail} className="auth-form-new"><label className="auth-label">{t("label.email")}</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} className="input input-bordered auth-input" placeholder="you@example.com" required/><label className="auth-label">{t("label.password")}</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} className="input input-bordered auth-input" placeholder="Min. 6 characters" minLength={6} required/><button type="submit" disabled={loading} className="btn btn-primary auth-main-button">{loading?<span className="loading loading-spinner loading-sm"/>:mode==="login"?t("label.sign_in"):t("label.create_account")}</button>{mode==="login"&&<button type="button" onClick={handlePasswordReset} disabled={resettingPassword} className="btn btn-ghost btn-sm">{resettingPassword?<span className="loading loading-spinner loading-xs"/>:t("auth.forgot_password")}</button>}</form>}{tab==="phone"&&<div className="auth-form-new">{!otpSent?<><label className="auth-label">{t("label.phone_number")}</label><input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} className="input input-bordered auth-input" placeholder="+8801XXXXXXXXX"/><button onClick={handleSendOTP} disabled={loading||!phone} className="btn btn-primary auth-main-button">{loading?<span className="loading loading-spinner loading-sm"/>:t("label.send_otp")}</button></>:<><p className="auth-help">Enter the 6-digit OTP sent to {phone}</p><input value={otp} onChange={e=>setOtp(e.target.value)} className="input input-bordered auth-input auth-otp" placeholder="000000" maxLength={6}/><button onClick={handleVerifyOTP} disabled={loading||otp.length!==6} className="btn btn-primary auth-main-button">{loading?<span className="loading loading-spinner loading-sm"/>:t("label.verify_otp")}</button><button onClick={()=>setOtpSent(false)} className="btn btn-ghost btn-sm">Change number</button></>}</div>}</div>}</section></div></main>);
 }

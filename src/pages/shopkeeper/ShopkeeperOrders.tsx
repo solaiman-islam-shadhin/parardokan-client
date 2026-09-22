@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ShoppingBag, ChevronDown, CreditCard } from "lucide-react";
 import api from "../../lib/api";
 import { Order } from "../../types";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { DashboardTabSkeleton } from "../../components/ui/LoadingSkeleton";
 
 const STATUSES = ["pending","approved","rejected","preparing","delivered","completed","cancelled"];
 
@@ -49,7 +49,7 @@ export default function ShopkeeperOrders() {
 
   const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
 
-  if (loading) return <LoadingSpinner fullScreen />;
+  if (loading) return <DashboardTabSkeleton variant="table" />;
 
   return (
     <div className="space-y-6">

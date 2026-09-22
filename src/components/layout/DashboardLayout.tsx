@@ -156,7 +156,7 @@ export default function DashboardLayout({ role }: Props) {
 
       {/* Mobile sidebar drawer */}
       <aside
-        className={`fixed top-0 left-0 h-full w-[min(16rem,85vw)] bg-base-100 z-40 transform transition-transform duration-300 lg:hidden ${
+        className={`dashboard-mobile-sidebar fixed top-0 left-0 h-full w-[min(16rem,85vw)] bg-base-100 z-40 transform transition-transform duration-300 lg:hidden ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -172,7 +172,7 @@ export default function DashboardLayout({ role }: Props) {
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col lg:ml-64">
         {/* Mobile topbar */}
-        <header className="lg:hidden bg-base-100/95 backdrop-blur-md border-b border-base-300/80 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+        <header className="dashboard-mobile-header lg:hidden fixed inset-x-0 top-0 z-50 bg-base-100/95 backdrop-blur-md border-b border-base-300/80 px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => setSidebarOpen(true)}
             className="btn btn-ghost btn-sm btn-circle"

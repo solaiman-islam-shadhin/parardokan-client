@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import api, { uploadImage } from "../../lib/api";
 import LocationPicker from "../../components/registration/LocationPicker";
 import ConfirmActionDialog from "../../components/ui/ConfirmActionDialog";
+import { DashboardProfileSkeleton } from "../../components/ui/LoadingSkeleton";
 import { useToast } from "../../context/ToastContext";
 
 export default function CustomerProfile() {
@@ -27,6 +28,8 @@ export default function CustomerProfile() {
   const [longitude, setLongitude] = useState(profile?.longitude);
   const [confirmUpdate, setConfirmUpdate] = useState(false);
   const { showToast } = useToast();
+
+  if (!profile) return <DashboardProfileSkeleton />;
 
   useEffect(() => {
     setLatitude(profile?.latitude);
@@ -79,16 +82,16 @@ export default function CustomerProfile() {
   };
 
   return (
-    <div className="max-w-2xl">
+    <div className="profile-page max-w-4xl">
       <ConfirmActionDialog open={confirmUpdate} title={t("label.confirm_update")} description={t("label.confirm_update_description")} confirmLabel={t("label.update")} busy={saving} onConfirm={saveProfile} onCancel={() => setConfirmUpdate(false)} />
       <div className="mb-6">
         <h1 className="font-display text-2xl font-bold">{t("label.my_profile")}</h1>
         <p className="text-base-content/50 mt-1">{t("label.manage_your_account_information")}</p>
       </div>
 
-      <div className="bg-base-100 border border-base-300 rounded-2xl p-8">
+      <div className="profile-card bg-base-100 border border-base-300 rounded-2xl p-5 sm:p-8">
         {/* Avatar */}
-        <div className="flex items-center gap-5 mb-8">
+        <div className="profile-card-header flex items-center gap-5 mb-8">
           <div className="relative">
             <div className="avatar">
               <div className="w-20 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100">
@@ -125,8 +128,8 @@ export default function CustomerProfile() {
           </div>
         </div>
 
-        <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSave} className="profile-form space-y-5">
+          <div className="grid sm:grid-cols-2 gap-5">
             <div className="form-control">
               <label className="label">
                 <span className="label-text">{t("label.full_name")}</span>
@@ -139,15 +142,16 @@ export default function CustomerProfile() {
               />
             </div>
 
-            <div className="form-control">
+            <div className="form-control sm:col-span-2 sm:order-3">
               <label className="label"><span className="label-text">{t("label.location")}</span></label>
               <LocationPicker
+                address={form.address}
                 latitude={latitude}
                 longitude={longitude}
                 onChange={(lat, lng) => { setLatitude(lat); setLongitude(lng); }}
               />
             </div>
-            <div className="form-control">
+            <div className="form-control sm:order-2">
               <label className="label">
                 <span className="label-text">{t("label.phone_number")}</span>
               </label>

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ShoppingBag } from "lucide-react";
 import api from "../../lib/api";
 import { Order } from "../../types";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { DashboardTabSkeleton } from "../../components/ui/LoadingSkeleton";
 
 const statusColor: Record<string, string> = {
   pending: "badge-warning",
@@ -27,7 +27,7 @@ export default function MyOrders() {
     });
   }, []);
 
-  if (loading) return <LoadingSpinner fullScreen />;
+  if (loading) return <DashboardTabSkeleton variant="list" />;
 
   return (
     <div className="space-y-6">
