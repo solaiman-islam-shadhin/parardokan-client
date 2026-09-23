@@ -4,7 +4,7 @@ import { CreditCard, Plus, CheckCircle, Edit3, X, Eye, UserRound } from "lucide-
 import api from "../../lib/api";
 import { uploadImage } from "../../lib/api";
 import { BakiMember } from "../../types";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { DashboardTabSkeleton } from "../../components/ui/LoadingSkeleton";
 import ConfirmActionDialog from "../../components/ui/ConfirmActionDialog";
 import { useToast } from "../../context/ToastContext";
 
@@ -162,7 +162,7 @@ export default function ShopkeeperBaki() {
   const pending = members.filter((m) => m.status === "pending");
   const approved = members.filter((m) => m.status === "approved");
 
-  if (loading) return <LoadingSpinner fullScreen />;
+  if (loading) return <DashboardTabSkeleton variant="table" />;
 
   return (
     <div className="space-y-6">

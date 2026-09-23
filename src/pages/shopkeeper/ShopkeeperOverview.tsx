@@ -70,8 +70,8 @@ export default function ShopkeeperOverview() {
 
   return (
     loading ? <DashboardSkeleton /> :
-    <div className="dashboard-matrix space-y-8">
-      <div className="flex items-start justify-between flex-wrap gap-4">
+    <div className="dashboard-matrix overview-shell space-y-8">
+      <div className="overview-page-heading flex items-start justify-between flex-wrap gap-4">
         <div>
           <p className="matrix-kicker"><Activity size={13} /> {t("overview.shopkeeper_matrix")}</p>
           <h1 className="font-display text-2xl font-bold">
@@ -101,20 +101,42 @@ export default function ShopkeeperOverview() {
         )}
       </div>
 
-      <div className="matrix-overview-panel">
+      {subscription?.planId && subscription.planId !== "basic" && (
+        <div
+          className={`subscription-renewal-alert ${
+            daysRemaining !== null && daysRemaining <= 7
+              ? "is-warning"
+              : "is-info"
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <span className="subscription-renewal-alert-dot" aria-hidden="true" />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider">
+              Subscription renewal
+            </p>
+            <p className="mt-1 font-semibold">
+              {daysRemaining === 0
+                ? "Your plan has expired and is now Basic."
+                : `${subscription.planId} plan · ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} remaining`}
+            </p>
+            {daysRemaining !== null && daysRemaining <= 7 && daysRemaining > 0 && (
+              <p className="mt-1 text-sm opacity-75">
+                Renew within a week to keep your Pro features unlocked.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="matrix-overview-panel overview-hero-card">
         <div className="matrix-panel-glow" />
         <div className="relative flex flex-wrap items-end justify-between gap-6">
           <div>
             <p className="matrix-label">{t("overview.shop_signal")}</p>
             <p className="mt-2 max-w-xl text-2xl font-bold tracking-tight">{t("overview.shop_title")}</p>
           </div>
-          {subscription?.planId && subscription.planId !== "basic" && (
-            <div className={`rounded-2xl border p-5 ${daysRemaining !== null && daysRemaining <= 7 ? "border-warning bg-warning/10" : "border-primary/20 bg-primary/5"}`}>
-              <p className="text-xs font-semibold uppercase tracking-wider text-base-content/50">Subscription renewal</p>
-              <p className="mt-2 text-lg font-semibold">{daysRemaining === 0 ? "Your plan has expired and is now Basic." : `${subscription.planId} plan · ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} remaining`}</p>
-              {daysRemaining !== null && daysRemaining <= 7 && daysRemaining > 0 && <p className="mt-1 text-sm text-base-content/60">Renew within a week to keep your Pro features unlocked.</p>}
-            </div>
-          )}
           <div className={`matrix-pulse ${shop?.isOpen ? "is-live" : "is-muted"}`}><span /> {shop?.isOpen ? t("overview.accepting_orders") : t("overview.offline_mode")}</div>
         </div>
         <div className="matrix-grid-lines mt-8 grid gap-3 sm:grid-cols-3">
@@ -156,7 +178,7 @@ export default function ShopkeeperOverview() {
             to: "/shopkeeper/sales",
           },
         ].map(({ label, value, icon: Icon, color, to }) => (
-          <Link key={label} to={to} className="matrix-stat-card">
+          <Link key={label} to={to} className="matrix-stat-card overview-stat-card">
             <div className={`matrix-icon ${color}`}>
               <Icon size={20} />
             </div>
@@ -182,7 +204,7 @@ export default function ShopkeeperOverview() {
               {t("label.view_all")}
             </Link>
           </div>
-          <div className="matrix-table-card bg-base-100 border border-base-300 rounded-2xl overflow-hidden">
+          <div className="matrix-table-card overview-table-card bg-base-100 border border-base-300 rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="table">
                 <thead>

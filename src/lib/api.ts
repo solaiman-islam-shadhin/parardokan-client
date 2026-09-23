@@ -19,7 +19,7 @@ api.interceptors.request.use(async (config) => {
     throw new Error("Firebase authentication is not ready");
   }
 
-  const token = await user.getIdToken(true);
+  const token = await user.getIdToken();
   config.headers = config.headers || {};
   config.headers.Authorization = `Bearer ${token}`;
   return config;

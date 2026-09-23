@@ -5,7 +5,7 @@ import { CreditCard, Store } from "lucide-react";
 import api from "../../lib/api";
 import { uploadImage } from "../../lib/api";
 import { BakiMember, Shop } from "../../types";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { DashboardTabSkeleton } from "../../components/ui/LoadingSkeleton";
 import { useAuth } from "../../context/AuthContext";
 
 export default function MyBaki() {
@@ -124,7 +124,7 @@ export default function MyBaki() {
     rejected: "badge-error",
   };
 
-  if (loading) return <LoadingSpinner fullScreen />;
+  if (loading) return <DashboardTabSkeleton variant="form" />;
 
   return (
     <div className="space-y-6 max-w-3xl">

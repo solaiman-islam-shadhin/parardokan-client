@@ -47,8 +47,8 @@ export default function CustomerOverview() {
 
   return (
     loading ? <DashboardSkeleton /> :
-    <div className="dashboard-matrix space-y-8">
-      <div>
+    <div className="dashboard-matrix overview-shell space-y-8">
+      <div className="overview-page-heading">
         <p className="matrix-kicker"><Activity size={13} /> {t("overview.customer_matrix")}</p>
         <h1 className="font-display text-2xl font-bold">
           <span className="inline-flex items-center gap-2">{t("label.hello")}, {profile?.name?.split(" ")[0]} <Hand size={20} className="text-primary" /></span>
@@ -58,7 +58,7 @@ export default function CustomerOverview() {
         </p>
       </div>
 
-      <div className="matrix-overview-panel">
+      <div className="matrix-overview-panel overview-hero-card">
         <div className="matrix-panel-glow" />
         <div className="relative flex flex-wrap items-end justify-between gap-6">
           <div>
@@ -106,7 +106,7 @@ export default function CustomerOverview() {
             to: "/customer/payments",
           },
         ].map(({ label, value, icon: Icon, color, to }) => (
-          <Link key={label} to={to} className="matrix-stat-card">
+          <Link key={label} to={to} className="matrix-stat-card overview-stat-card">
           <div className={`matrix-icon ${color}`}>
               <Icon size={20} />
             </div>
@@ -129,7 +129,7 @@ export default function CustomerOverview() {
         <div className="grid sm:grid-cols-2 gap-4">
           <Link
             to="/customer/shops"
-            className="flex items-center gap-4 bg-primary/5 border border-primary/20 rounded-2xl p-5 hover:bg-primary/10 transition-colors group"
+            className="overview-action-card flex items-center gap-4 bg-primary/5 border border-primary/20 rounded-2xl p-5 hover:bg-primary/10 transition-colors group"
           >
             <div className="w-12 h-12 bg-primary text-primary-content rounded-xl flex items-center justify-center">
               <MapPin size={22} />
@@ -142,7 +142,7 @@ export default function CustomerOverview() {
           </Link>
           <Link
             to="/customer/order"
-            className="flex items-center gap-4 bg-base-200 border border-base-300 rounded-2xl p-5 hover:bg-base-300 transition-colors group"
+            className="overview-action-card flex items-center gap-4 bg-base-200 border border-base-300 rounded-2xl p-5 hover:bg-base-300 transition-colors group"
           >
             <div className="w-12 h-12 bg-neutral text-neutral-content rounded-xl flex items-center justify-center">
               <ShoppingBag size={22} />
@@ -165,7 +165,7 @@ export default function CustomerOverview() {
               {t("label.view_all")}
             </Link>
           </div>
-          <div className="matrix-table-card bg-base-100 rounded-2xl border border-base-300 overflow-hidden">
+          <div className="matrix-table-card overview-table-card bg-base-100 rounded-2xl border border-base-300 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="table">
                 <thead>

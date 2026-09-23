@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { MapPin, Store, LocateFixed, Navigation } from "lucide-react";
 import api from "../../lib/api";
 import { Shop } from "../../types";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { LoadingSkeleton } from "../../components/ui/LoadingSkeleton";
 import { useAuth } from "../../context/AuthContext";
 
 function FitShopMarkers({ shops }: { shops: Shop[] }) {
@@ -90,17 +90,25 @@ export default function NearbyShops() {
     }
     setLoading(true);
     setError("");
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        const loc = { lat: coords.latitude, lng: coords.longitude };
-        setLocation(loc);
-        fetchNearby(loc.lat, loc.lng);
-      },
-      () => {
+    const handleSuccess = ({ coords }: GeolocationPosition) => {
+      const loc = { lat: coords.latitude, lng: coords.longitude };
+      setLocation(loc);
+      fetchNearby(loc.lat, loc.lng);
+    };
+    const handleError = () => {
         setLoading(false);
         setError(t("nearby.location_permission"));
+    };
+    navigator.geolocation.getCurrentPosition(
+      handleSuccess,
+      () => {
+        navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0,
+        });
       },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
+      { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
     );
   };
 
@@ -195,8 +203,20 @@ export default function NearbyShops() {
 
       {/* Shop list */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <LoadingSpinner />
+        <div className="space-y-4" aria-label="Loading nearby shops">
+          {Array.from({ length: 3 }, (_, index) => (
+            <div
+              key={index}
+              className="rounded-2xl border border-base-300 bg-base-100 p-5 space-y-3"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <LoadingSkeleton className="h-6 w-48" />
+                <LoadingSkeleton className="h-6 w-20 rounded-full" />
+              </div>
+              <LoadingSkeleton className="h-4 w-3/4 max-w-md" />
+              <LoadingSkeleton className="h-3 w-32" />
+            </div>
+          ))}
         </div>
       ) : shops.length === 0 ? (
         <div className="text-center py-12 text-base-content/40">

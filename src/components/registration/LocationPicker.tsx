@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { Navigation, MapPin } from "lucide-react";
@@ -29,10 +29,18 @@ function FlyTo({ lat, lng }: { lat: number; lng: number }) {
 interface Props {
   latitude?: number;
   longitude?: number;
+  address?: string;
   onChange: (latitude: number, longitude: number) => void;
+  autoDetectOnMount?: boolean;
 }
 
-export default function LocationPicker({ latitude, longitude, onChange }: Props) {
+export default function LocationPicker({
+  latitude,
+  longitude,
+  address = "",
+  onChange,
+  autoDetectOnMount = false,
+}: Props) {
   const { showToast } = useToast();
   const [position, setPosition] = useState<[number, number]>([
     latitude ?? 23.8103,
@@ -42,60 +50,160 @@ export default function LocationPicker({ latitude, longitude, onChange }: Props)
   const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
   const [locationError, setLocationError] = useState("");
   const [accuracy, setAccuracy] = useState<number>();
+  const [showSlowMessage, setShowSlowMessage] = useState(false);
+  const [manualLocationError, setManualLocationError] = useState("");
+  const currentLocationRef = useRef({ latitude, longitude });
+  const requestHadLocationRef = useRef(false);
+  const onChangeRef = useRef(onChange);
 
   useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    currentLocationRef.current = { latitude, longitude };
     if (latitude !== undefined && longitude !== undefined) {
       setPosition([latitude, longitude]);
     }
   }, [latitude, longitude]);
 
+  useEffect(() => {
+    if (!detecting) {
+      setShowSlowMessage(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setShowSlowMessage(true), 5000);
+    return () => window.clearTimeout(timer);
+  }, [detecting]);
+
   const handleMove = (lat: number, lng: number) => {
     setPosition([lat, lng]);
-    onChange(lat, lng);
+    onChangeRef.current(lat, lng);
   };
+
+  useEffect(() => {
+    const trimmedAddress = address.trim();
+    if (trimmedAddress.length < 3) {
+      setManualLocationError("");
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(trimmedAddress)}`,
+          { signal: controller.signal, headers: { Accept: "application/json" } }
+        );
+        if (!response.ok) {
+          throw new Error(`Location search failed with status ${response.status}`);
+        }
+
+        const results = (await response.json()) as Array<{ lat: string; lon: string }>;
+        const result = results[0];
+        if (!result) {
+          setManualLocationError(
+            "We could not find that address. Please choose your location manually on the map."
+          );
+          return;
+        }
+
+        const newPosition: [number, number] = [Number(result.lat), Number(result.lon)];
+        if (newPosition.some((coordinate) => !Number.isFinite(coordinate))) {
+          throw new Error("The location search returned invalid coordinates.");
+        }
+        setPosition(newPosition);
+        setFlyTarget(newPosition);
+        setAccuracy(undefined);
+        setManualLocationError("");
+        onChangeRef.current(newPosition[0], newPosition[1]);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        setManualLocationError(
+          "We could not update the map for that address. Please choose your location manually on the map."
+        );
+      }
+    }, 700);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [address]);
 
   const detectLocation = () => {
     setDetecting(true);
     setLocationError("");
+    setShowSlowMessage(false);
+    requestHadLocationRef.current =
+      latitude !== undefined && longitude !== undefined;
 
     if (!navigator.geolocation) {
       const message = "Geolocation is not supported by your browser.";
       setLocationError(message);
+      setManualLocationError(
+        "Please add your location manually or choose it on the map manually."
+      );
       showToast("error", message);
       setDetecting(false);
       return;
     }
 
+    const handleSuccess = ({ coords }: GeolocationPosition) => {
+      const currentLocation = currentLocationRef.current;
+      if (
+        !requestHadLocationRef.current &&
+        currentLocation.latitude !== undefined &&
+        currentLocation.longitude !== undefined
+      ) {
+        setDetecting(false);
+        return;
+      }
+      const newPosition: [number, number] = [coords.latitude, coords.longitude];
+      setPosition(newPosition);
+      setFlyTarget(newPosition);
+      setAccuracy(coords.accuracy);
+      onChangeRef.current(coords.latitude, coords.longitude);
+      setDetecting(false);
+      setManualLocationError("");
+      showToast("success", "Your current location was detected successfully.");
+    };
+
+    const handleError = (error: GeolocationPositionError) => {
+      const message =
+        error.code === 1
+          ? "Location permission was denied. Allow location access in your browser settings and try again."
+          : error.code === 3
+            ? "Location detection timed out. Turn on GPS/location services and try again."
+            : "Could not detect your location. You can pin it manually on the map.";
+      setLocationError(message);
+      setManualLocationError(
+        "Please add your location manually or choose it on the map manually."
+      );
+      showToast("error", message);
+      setDetecting(false);
+    };
+
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        const newPosition: [number, number] = [coords.latitude, coords.longitude];
-        setPosition(newPosition);
-        setFlyTarget(newPosition);
-        setAccuracy(coords.accuracy);
-        onChange(coords.latitude, coords.longitude);
-        setDetecting(false);
-        showToast("success", "Your current location was detected successfully.");
+      handleSuccess,
+      () => {
+        navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0,
+        });
       },
-      (error) => {
-        const message =
-          error.code === 1
-            ? "Location permission was denied. Allow location access in your browser settings and try again."
-            : error.code === 3
-              ? "Location detection timed out. Turn on GPS/location services and try again."
-              : "Could not detect your location. You can pin it manually on the map.";
-        setLocationError(message);
-        showToast("error", message);
-        setDetecting(false);
-      },
-      { timeout: 8000, enableHighAccuracy: true }
+      { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
     );
   };
 
   useEffect(() => {
-    if (latitude === undefined || longitude === undefined) {
+    if (autoDetectOnMount && latitude === undefined && longitude === undefined) {
       detectLocation();
     }
-  }, []);
+  }, [autoDetectOnMount]);
 
   return (
     <div className="space-y-2">
@@ -141,6 +249,14 @@ export default function LocationPicker({ latitude, longitude, onChange }: Props)
         {accuracy !== undefined && ` (accuracy: approximately ${Math.round(accuracy)}m)`}
       </p>
       {locationError && <p className="text-xs text-error">{locationError}</p>}
+      {manualLocationError && (
+        <p className="alert alert-warning py-2 text-xs">{manualLocationError}</p>
+      )}
+      {showSlowMessage && (
+        <p className="text-xs text-base-content/60">
+          Still finding your location... this can take longer on mobile.
+        </p>
+      )}
     </div>
   );
 }

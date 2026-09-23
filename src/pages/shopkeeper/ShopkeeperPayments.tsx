@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Receipt, CheckCircle, Eye, Mail, Phone, MapPin, X } from "lucide-react";
 import api from "../../lib/api";
 import { Payment } from "../../types";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { DashboardTabSkeleton } from "../../components/ui/LoadingSkeleton";
 
 const statusColor: Record<string, string> = {
   pending: "badge-warning",
@@ -46,7 +46,7 @@ export default function ShopkeeperPayments() {
     .filter((p) => p.status === "paid" || p.status === "verified")
     .reduce((sum, p) => sum + p.amount, 0);
 
-  if (loading) return <LoadingSpinner fullScreen />;
+  if (loading) return <DashboardTabSkeleton variant="table" />;
 
   return (
     <div className="space-y-6">
