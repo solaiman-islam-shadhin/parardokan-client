@@ -197,11 +197,21 @@ export default function ShopkeeperProfile() {
     const amount = billingCycle === "annual" ? plan.annualPrice : plan.monthlyPrice;
     if (!amount) return;
     setSubLoading(plan.id);
+    setError("");
     try {
       const res = await api.post("/subscriptions/stripe/checkout", { planId: plan.id, billingCycle });
+      if (!res.data?.url) {
+        throw new Error("Stripe did not return a checkout URL.");
+      }
       window.location.href = res.data.url;
-    } catch {
-      setError("Subscription checkout failed");
+    } catch (err: any) {
+      const message =
+        err.response?.data?.error ||
+        (err.code === "ECONNABORTED"
+          ? "The payment server took too long to respond. Please try again."
+          : err.message || "Subscription checkout failed");
+      setError(message);
+      showToast("error", message);
     } finally {
       setSubLoading(null);
     }
@@ -410,6 +420,12 @@ export default function ShopkeeperProfile() {
           <Crown size={20} className="text-amber-500" />
           <h2 className="font-semibold text-lg">{t("label.subscription_plan")}</h2>
         </div>
+
+        {error && (
+          <div className="alert alert-error mb-6 text-sm">
+            {error}
+          </div>
+        )}
 
         {subscription && (
           <div className="alert alert-success mb-6 text-sm">
