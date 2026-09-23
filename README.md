@@ -7,17 +7,7 @@
 ## 🗂️ Project Structure
 
 ```
-parar-dokan/
-├── backend/          # Express + TypeScript + MongoDB API
-│   ├── src/
-│   │   ├── config/       # MongoDB & Firebase Admin setup
-│   │   ├── controllers/  # Route handlers
-│   │   ├── middleware/   # Auth & role middleware
-│   │   ├── routes/       # All API routes
-│   │   └── index.ts      # Entry point
-│   ├── .env.example
-│   └── package.json
-│
+
 ├── frontend/         # React + Vite + TypeScript + Tailwind + DaisyUI
 │   ├── src/
 │   │   ├── components/   # UI, layout, auth components
@@ -28,7 +18,7 @@ parar-dokan/
 │   ├── .env.example
 │   └── package.json
 │
-└── README.md
+
 ```
 
 ---
